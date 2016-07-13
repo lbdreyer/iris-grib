@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2010 - 2015, Met Office
+# (C) British Crown Copyright 2010 - 2016, Met Office
 #
 # This file is part of iris-grib.
 #
@@ -17,10 +17,8 @@
 """
 Grib save implementation.
 
-This module replaces the deprecated
-:mod:`iris_grib.grib_save_rules`. It is a private module
-with no public API. It is invoked from
-:meth:`iris_grib.save_grib2`.
+:mod:`iris_grib._save_rules` is a private module with no public API.
+It is invoked from :meth:`iris_grib.save_grib2`.
 
 """
 
@@ -572,14 +570,6 @@ def _non_missing_forecast_period(cube):
                       "scaling required.")
     fp = int(fp)
 
-    # Turn negative forecast times into grib negative numbers?
-    from . import hindcast_workaround
-    if hindcast_workaround and fp < 0:
-        msg = "Encoding negative forecast period from {} to ".format(fp)
-        fp = 2**31 + abs(fp)
-        msg += "{}".format(np.int32(fp))
-        warnings.warn(msg)
-
     return rt, rt_meaning, fp, grib_time_code
 
 
@@ -993,6 +983,22 @@ def _product_definition_template_8_10_and_11(cube, grib):
         set_time_increment(cell_method, grib)
 
 
+def product_definition_template_40(cube, grib):
+    """
+    Set keys within the provided grib message based on Product
+    Definition Template 4.40.
+
+    Template 4.40 is used to represent an analysis or forecast at a horizontal
+    level or in a horizontal layer at a point in time for atmospheric chemical
+    constituents.
+
+    """
+    gribapi.grib_set(grib, "productDefinitionTemplateNumber", 40)
+    product_definition_template_common(cube, grib)
+    constituent_type = cube.attributes['WMO_constituent_type']
+    gribapi.grib_set(grib, "constituentType", constituent_type)
+
+
 def product_definition_section(cube, grib):
     """
     Set keys within the product definition section of the provided
@@ -1000,8 +1006,12 @@ def product_definition_section(cube, grib):
 
     """
     if not cube.coord("time").has_bounds():
-        # forecast (template 4.0)
-        product_definition_template_0(cube, grib)
+        if 'WMO_constituent_type' in cube.attributes:
+            # forecast for atmospheric chemical constiuent (template 4.40)
+            product_definition_template_40(cube, grib)
+        else:
+            # forecast (template 4.0)
+            product_definition_template_0(cube, grib)
     elif _cube_is_time_statistic(cube):
         if cube.coords('realization'):
             # time processed (template 4.11)

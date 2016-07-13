@@ -42,7 +42,7 @@ from . import grib_phenom_translation as itranslation
 from iris.fileformats.rules import ConversionMetadata, Factory, Reference
 from iris.util import _is_circular
 
-from .load_rules import convert as grib1_convert
+from .load_rules import grib1_convert
 from .message import GribMessage
 
 
@@ -155,7 +155,9 @@ def unscale(value, factor):
         is returned.
 
     """
-    _unscale = lambda v, f: v / 10.0 ** f
+    def _unscale(v, f):
+        return v / 10.0 ** f
+
     if isinstance(value, Iterable) or isinstance(factor, Iterable):
         def _masker(item):
             result = ma.masked_equal(item, _MDI)
@@ -1075,15 +1077,15 @@ def grid_definition_template_90(section, metadata):
         raise TranslationError('Unsupported space-view orientation.')
 
     # Determine the coordinate system.
-    sub_satellite_lat = (section['latitudeOfSubSatellitePoint']
-                         * _GRID_ACCURACY_IN_DEGREES)
+    sub_satellite_lat = (section['latitudeOfSubSatellitePoint'] *
+                         _GRID_ACCURACY_IN_DEGREES)
     # The subsequent calculations to determine the apparent Earth
     # diameters rely on the satellite being over the equator.
     if sub_satellite_lat != 0:
         raise TranslationError('Unsupported non-zero latitude for '
                                'space-view perspective.')
-    sub_satellite_lon = (section['longitudeOfSubSatellitePoint']
-                         * _GRID_ACCURACY_IN_DEGREES)
+    sub_satellite_lon = (section['longitudeOfSubSatellitePoint'] *
+                         _GRID_ACCURACY_IN_DEGREES)
     major, minor, radius = ellipsoid_geometry(section)
     geog_cs = ellipsoid(section['shapeOfTheEarth'], major, minor, radius)
     height_above_centre = geog_cs.semi_major_axis * section['Nr'] / 1e6
@@ -1760,9 +1762,17 @@ def product_definition_template_0(section, metadata, rt_coord):
     data_cutoff(section['hoursAfterDataCutoff'],
                 section['minutesAfterDataCutoff'])
 
+    if 'forecastTime' in section.keys():
+        forecast_time = section['forecastTime']
+    # The gribapi encodes the forecast time as 'startStep' for pdt 4.4x;
+    # product_definition_template_40 makes use of this function. The
+    # following will be removed once the suspected bug is fixed.
+    elif 'startStep' in section.keys():
+        forecast_time = section['startStep']
+
     # Calculate the forecast period coordinate.
     fp_coord = forecast_period_coord(section['indicatorOfUnitOfTimeRange'],
-                                     section['forecastTime'])
+                                     forecast_time)
     # Add the forecast period coordinate to the metadata aux coords.
     metadata['aux_coords_and_dims'].append((fp_coord, None))
 
@@ -2034,6 +2044,36 @@ def product_definition_template_31(section, metadata, rt_coord):
         metadata['aux_coords_and_dims'].append((rt_coord, None))
 
 
+def product_definition_template_40(section, metadata, frt_coord):
+    """
+    Translate template representing an analysis or forecast at a horizontal
+    level or in a horizontal layer at a point in time for atmospheric chemical
+    constituents.
+
+    Updates the metadata in-place with the translations.
+
+    Args:
+
+    * section:
+        Dictionary of coded key/value pairs from section 4 of the message.
+
+    * metadata:
+        :class:`collectins.OrderedDict` of metadata.
+
+    * frt_coord:
+        The scalar forecast reference time :class:`iris.coords.DimCoord`.
+
+    """
+    # Perform identical message processing.
+    product_definition_template_0(section, metadata, frt_coord)
+
+    # Reference GRIB2 Code Table 4.230.
+    constituent_type = section['constituentType']
+
+    # Add the constituent type as  an attribute.
+    metadata['attributes']['WMO_constituent_type'] = constituent_type
+
+
 def product_definition_section(section, metadata, discipline, tablesVersion,
                                rt_coord):
     """
@@ -2085,6 +2125,8 @@ def product_definition_section(section, metadata, discipline, tablesVersion,
     elif template == 31:
         # Process satellite product.
         product_definition_template_31(section, metadata, rt_coord)
+    elif template == 40:
+        product_definition_template_40(section, metadata, rt_coord)
     else:
         msg = 'Product definition template [{}] is not ' \
             'supported'.format(template)
