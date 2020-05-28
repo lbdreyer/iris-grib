@@ -1494,7 +1494,7 @@ def data_section(cube, grib):
     # tries to cast the data to float64. This only occurs for large data. As a
     # temporary fix we cast the data upfront
     # TODO: remove the `astype` command once eccodes has been fixed.
-    # data = data.astype('float64')
+    data = data.astype('float64')
     gribapi.grib_set_double_array(grib, "values", data.flatten())
 
     # todo: check packing accuracy?
