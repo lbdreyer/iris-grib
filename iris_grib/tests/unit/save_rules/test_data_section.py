@@ -16,6 +16,7 @@ from unittest import mock
 
 import iris.cube
 import numpy as np
+import gribapi
 
 from iris_grib._save_rules import data_section
 
@@ -159,8 +160,7 @@ class Test(tests.IrisGribTest):
         grib_message = gribapi.grib_new_from_samples("GRIB2")
         data_section(cube, grib_message)
         gribapi.grib_release(grib_message)
-        #should not seg fault
-
+        # should not seg fault
 
 
 if __name__ == "__main__":
