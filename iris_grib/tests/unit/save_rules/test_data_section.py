@@ -151,5 +151,17 @@ class TestMDI(tests.IrisGribTest):
         self.assertValues(grib_api, [-1000, 2000, FILL, FILL])
 
 
+class Test(tests.IrisGribTest):
+    def test_float32(self):
+        data = np.random.rand(1400*2000).astype(float32)
+        cube = iris.cube.Cube(data,
+                              standard_name='geopotential_height', units='km')
+        grib_message = gribapi.grib_new_from_samples("GRIB2")
+        data_section(cube, grib_message)
+        gribapi.grib_release(grib_message)
+        #should not seg fault
+
+
+
 if __name__ == "__main__":
     tests.main()
