@@ -154,7 +154,7 @@ class TestMDI(tests.IrisGribTest):
 
 class Test(tests.IrisGribTest):
     def test_float32(self):
-        data = np.random.random(1200*1800).astype(np.float32)
+        data = np.random.random(1920*2560).astype(np.float32)
         cube = iris.cube.Cube(data,
                               standard_name='geopotential_height', units='km')
         grib_message = gribapi.grib_new_from_samples("GRIB2")
