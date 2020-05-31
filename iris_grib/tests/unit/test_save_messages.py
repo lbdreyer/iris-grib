@@ -26,8 +26,7 @@ class TestSaveMessages(tests.IrisGribTest):
             # sending a MagicMock object to gribapi raises an AssertionError
             # as the gribapi code does a type check
             # this is deemed acceptable within the scope of this unit test
-            with self.assertRaises((AssertionError, TypeError)):
-                iris_grib.save_messages([self.grib_message], 'foo.grib2')
+            iris_grib.save_messages([self.grib_message], 'foo.grib2')
         self.assertTrue(mock.call('foo.grib2', 'wb') in m.mock_calls)
 
     def test_save_append(self):
@@ -36,9 +35,8 @@ class TestSaveMessages(tests.IrisGribTest):
             # sending a MagicMock object to gribapi raises an AssertionError
             # as the gribapi code does a type check
             # this is deemed acceptable within the scope of this unit test
-            with self.assertRaises((AssertionError, TypeError)):
-                iris_grib.save_messages([self.grib_message], 'foo.grib2',
-                                        append=True)
+            iris_grib.save_messages([self.grib_message], 'foo.grib2',
+                                    append=True)
         self.assertTrue(mock.call('foo.grib2', 'ab') in m.mock_calls)
 
 
