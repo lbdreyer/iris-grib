@@ -14,6 +14,7 @@ import iris_grib.tests as tests
 
 from unittest import mock
 
+import gribapi
 import iris.cube
 import numpy as np
 
@@ -150,6 +151,16 @@ class TestMDI(tests.IrisGribTest):
         # Check the correct data values have been set.
         self.assertValues(grib_api, [-1000, 2000, FILL, FILL])
 
+
+class Test(tests.IrisGribTest):
+    def test_float32(self):
+        data = np.random.random(1000*1000).astype(np.float32)
+        cube = iris.cube.Cube(data,
+                              standard_name='geopotential_height', units='km')
+        grib_message = gribapi.grib_new_from_samples("GRIB2")
+        data_section(cube, grib_message)
+        gribapi.grib_release(grib_message)
+        # should not seg fault
 
 if __name__ == "__main__":
     tests.main()
