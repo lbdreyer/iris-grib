@@ -1489,6 +1489,7 @@ def data_section(cube, grib):
         # Enable missing values in the grib message.
         gribapi.grib_set(grib, "bitmapPresent", 1)
         gribapi.grib_set_double(grib, "missingValue", fill_value)
+    data = data.astype(np.float64)
     gribapi.grib_set_double_array(grib, "values", data.flatten())
 
     # todo: check packing accuracy?
